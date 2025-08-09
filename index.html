@@ -650,6 +650,12 @@
                 bottom: 25vw;
             }
         }
+
+        /* Стиль для визуальной обратной связи при клике */
+        .click-feedback {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -887,24 +893,40 @@
         let accumulatedPassiveIncome = 0;
         let usedPromoCodes = JSON.parse(localStorage.getItem('usedPromoCodes')) || [];
 
-        // Функция вибрации
+        // Улучшенная функция вибрации для iOS и Android
         function vibrate() {
-            // Проверяем поддержку вибрации
-            if ("vibrate" in navigator) {
-                // Вибрация для разных устройств
-                if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-                    // Для iOS (поддержка вибрации появилась в iOS 13)
-                    try {
-                        // Длительная вибрация не работает на iOS, используем короткую
-                        navigator.vibrate(10);
-                    } catch (e) {
-                        console.log("Vibration not supported");
-                    }
-                } else {
-                    // Для Android и других устройств
-                    navigator.vibrate(30);
+            // Сначала проверяем Telegram WebApp Haptic Feedback
+            if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+                try {
+                    Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                    return;
+                } catch (e) {
+                    console.log("Telegram HapticFeedback error:", e);
                 }
             }
+            
+            // Проверяем стандартную вибрацию
+            if ("vibrate" in navigator) {
+                try {
+                    // Для iOS используем короткую вибрацию (10ms)
+                    if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                        navigator.vibrate(10);
+                    } else {
+                        // Для Android и других устройств - обычная вибрация
+                        navigator.vibrate(30);
+                    }
+                    return;
+                } catch (e) {
+                    console.log("Standard vibration error:", e);
+                }
+            }
+            
+            // Если вибрация не поддерживается, используем визуальный эффект
+            console.log("Vibration not supported - using visual feedback");
+            clickerButton.classList.add('click-feedback');
+            setTimeout(() => {
+                clickerButton.classList.remove('click-feedback');
+            }, 100);
         }
 
         // Инициализация игры
